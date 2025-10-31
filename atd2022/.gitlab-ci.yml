@@ -1,0 +1,44 @@
+image: python:3.9-buster
+
+stages:
+  - test
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_CLEAN_FLAGS: "-ffdx -e .cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
+lint:
+  stage: test
+  before_script:
+    - pip install .[dev,leaderboard]
+  script:
+    - black --check .
+    - isort --check .
+    - flake8 .
+    - mypy .
+    - nb-clean check *.ipynb
+
+pytest:
+  stage: test
+  before_script:
+    - pip install .[dev,leaderboard]
+    - export PY_IGNORE_IMPORTMISMATCH=1
+  script:
+    - pytest
+
+pages:
+  stage: deploy
+  before_script:
+    - pip install .[docs,leaderboard]
+  script:
+    - sphinx-build -b html docs/ public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
